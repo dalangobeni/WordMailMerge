@@ -1,0 +1,11 @@
+e:\Projects\WordMailMerge\MergeRunner\bin\Debug\MergeRunner.exe.config
+e:\Projects\WordMailMerge\MergeRunner\bin\Debug\MergeRunner.exe
+e:\Projects\WordMailMerge\MergeRunner\bin\Debug\MergeRunner.pdb
+e:\Projects\WordMailMerge\MergeRunner\bin\Debug\WordMailMerge.dll
+e:\Projects\WordMailMerge\MergeRunner\bin\Debug\DocumentFormat.OpenXml.dll
+e:\Projects\WordMailMerge\MergeRunner\bin\Debug\WordMailMerge.pdb
+e:\Projects\WordMailMerge\MergeRunner\bin\Debug\DocumentFormat.OpenXml.xml
+e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.csprojResolveAssemblyReference.cache
+e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.csproj.CoreCompileInputs.cache
+e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.exe
+e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.pdb

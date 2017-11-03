@@ -1,0 +1,10 @@
+e:\Projects\WordMailMerge\WordMailMerge\bin\Debug\WordMailMerge.dll
+e:\Projects\WordMailMerge\WordMailMerge\bin\Debug\WordMailMerge.pdb
+e:\Projects\WordMailMerge\WordMailMerge\bin\Debug\DocumentFormat.OpenXml.dll
+e:\Projects\WordMailMerge\WordMailMerge\bin\Debug\System.IO.FileSystem.Primitives.dll
+e:\Projects\WordMailMerge\WordMailMerge\bin\Debug\System.IO.Packaging.dll
+e:\Projects\WordMailMerge\WordMailMerge\bin\Debug\DocumentFormat.OpenXml.xml
+e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.csprojResolveAssemblyReference.cache
+e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.csproj.CoreCompileInputs.cache
+e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.dll
+e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.pdb
