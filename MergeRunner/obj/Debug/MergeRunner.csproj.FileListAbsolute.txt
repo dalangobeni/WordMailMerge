@@ -9,3 +9,14 @@ e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.csprojResolveAssembl
 e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.csproj.CoreCompileInputs.cache
 e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.exe
 e:\Projects\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.pdb
+E:\Projects\tests\WordMailMerge\MergeRunner\bin\Debug\MergeRunner.exe.config
+E:\Projects\tests\WordMailMerge\MergeRunner\bin\Debug\MergeRunner.exe
+E:\Projects\tests\WordMailMerge\MergeRunner\bin\Debug\MergeRunner.pdb
+E:\Projects\tests\WordMailMerge\MergeRunner\bin\Debug\WordMailMerge.dll
+E:\Projects\tests\WordMailMerge\MergeRunner\bin\Debug\DocumentFormat.OpenXml.dll
+E:\Projects\tests\WordMailMerge\MergeRunner\bin\Debug\WordMailMerge.pdb
+E:\Projects\tests\WordMailMerge\MergeRunner\bin\Debug\DocumentFormat.OpenXml.xml
+E:\Projects\tests\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.csprojResolveAssemblyReference.cache
+E:\Projects\tests\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.csproj.CoreCompileInputs.cache
+E:\Projects\tests\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.exe
+E:\Projects\tests\WordMailMerge\MergeRunner\obj\Debug\MergeRunner.pdb

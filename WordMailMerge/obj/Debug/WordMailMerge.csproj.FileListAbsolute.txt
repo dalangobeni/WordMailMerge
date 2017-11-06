@@ -8,3 +8,13 @@ e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.csprojResolveAss
 e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.csproj.CoreCompileInputs.cache
 e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.dll
 e:\Projects\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.pdb
+E:\Projects\tests\WordMailMerge\WordMailMerge\bin\Debug\WordMailMerge.dll
+E:\Projects\tests\WordMailMerge\WordMailMerge\bin\Debug\WordMailMerge.pdb
+E:\Projects\tests\WordMailMerge\WordMailMerge\bin\Debug\DocumentFormat.OpenXml.dll
+E:\Projects\tests\WordMailMerge\WordMailMerge\bin\Debug\System.IO.FileSystem.Primitives.dll
+E:\Projects\tests\WordMailMerge\WordMailMerge\bin\Debug\System.IO.Packaging.dll
+E:\Projects\tests\WordMailMerge\WordMailMerge\bin\Debug\DocumentFormat.OpenXml.xml
+E:\Projects\tests\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.csprojResolveAssemblyReference.cache
+E:\Projects\tests\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.csproj.CoreCompileInputs.cache
+E:\Projects\tests\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.dll
+E:\Projects\tests\WordMailMerge\WordMailMerge\obj\Debug\WordMailMerge.pdb

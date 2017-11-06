@@ -16,6 +16,11 @@ namespace WordMailMerge
         {
             const string sourceFile = @"E:\Projects\tests\WordMailMerge\MergeForm.docx";
             const string targetFile = @"E:\Projects\tests\WordMailMerge\MergedForm.docx";
+            var infringements = new List<Infringement>()
+            {
+                new Infringement{InfringementText= "You have done this thing incorrectly", ActionRequired = "Do this thing"},
+                new Infringement{InfringementText= "You have done this other thing incorrectly", ActionRequired = "Do this other thing"}
+            }; 
 
             const string mergeFieldName = "Property";
             const string replacementText = "The Property, 1 The Street";
@@ -29,16 +34,39 @@ namespace WordMailMerge
 
                 // Get the MainPart of the document
                 var mainPart = document.MainDocumentPart;
+                var customComponents = mainPart.RootElement.Descendants<SdtBlock>().Where(block => block.SdtProperties.GetFirstChild<Tag>().Val != "");
                 var mergeFields = mainPart.RootElement.Descendants<FieldCode>();
 
                 ReplaceMergeFieldWithText(mergeFields, mergeFieldName, replacementText);
+
+                foreach (var customComponent in customComponents)
+                {
+                    var source = customComponent.SdtProperties.GetFirstChild<Tag>().Val;
+                    if (source == "Infringements")
+                    {
+                        var table = customComponent.Descendants<Table>().Single();
+                        var rowTemplate = table.Descendants<TableRow>().Last();
+
+                        foreach (var infringement in infringements)
+                        {
+                            var rowCopy = rowTemplate.CloneNode(true) as TableRow;
+
+                            var rowMergeFields = rowCopy.Descendants<FieldCode>();
+                            ReplaceMergeFieldWithText(rowMergeFields, "InfringementText", infringement.InfringementText);
+                            ReplaceMergeFieldWithText(rowMergeFields, "ActionRequired", infringement.ActionRequired);
+
+                            table.AppendChild(rowCopy);
+                        }
+
+                        table.RemoveChild(rowTemplate);
+                    }
+                }
 
                 // Save the document
                 mainPart.Document.Save();
 
             }
         }
-
 
         private static void ReplaceMergeFieldWithText(IEnumerable<FieldCode> fields, string mergeFieldName, string replacementText)
         {
@@ -67,5 +95,11 @@ namespace WordMailMerge
             rSep.Remove();
             rEnd.Remove();
         }
+    }
+
+    public class Infringement
+    {
+        public string InfringementText { get; set; }
+        public string ActionRequired { get; set; }
     }
 }
