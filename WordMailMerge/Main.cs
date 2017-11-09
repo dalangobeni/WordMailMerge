@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,14 +18,6 @@ namespace WordMailMerge
         {
             const string sourceFile = @"E:\Projects\tests\WordMailMerge\MergeForm.docx";
             const string targetFile = @"E:\Projects\tests\WordMailMerge\MergedForm.docx";
-            var infringements = new List<Infringement>()
-            {
-                new Infringement{InfringementText= "You have done this thing incorrectly", ActionRequired = "Do this thing"},
-                new Infringement{InfringementText= "You have done this other thing incorrectly", ActionRequired = "Do this other thing"}
-            }; 
-
-            const string mergeFieldName = "Property";
-            const string replacementText = "The Property, 1 The Street";
 
             File.Copy(sourceFile, targetFile, true);
 
@@ -34,72 +28,242 @@ namespace WordMailMerge
 
                 // Get the MainPart of the document
                 var mainPart = document.MainDocumentPart;
-                var customComponents = mainPart.RootElement.Descendants<SdtBlock>().Where(block => block.SdtProperties.GetFirstChild<Tag>().Val != "");
-                var mergeFields = mainPart.RootElement.Descendants<FieldCode>();
 
-                ReplaceMergeFieldWithText(mergeFields, mergeFieldName, replacementText);
-
-                foreach (var customComponent in customComponents)
+                var forEachData = new Dictionary<string, List<Dictionary<string, string>>>
                 {
-                    var source = customComponent.SdtProperties.GetFirstChild<Tag>().Val;
-                    if (source == "Infringements")
                     {
-                        var table = customComponent.Descendants<Table>().Single();
-                        var rowTemplate = table.Descendants<TableRow>().Last();
-
-                        foreach (var infringement in infringements)
-                        {
-                            var rowCopy = rowTemplate.CloneNode(true) as TableRow;
-
-                            var rowMergeFields = rowCopy.Descendants<FieldCode>();
-                            ReplaceMergeFieldWithText(rowMergeFields, "InfringementText", infringement.InfringementText);
-                            ReplaceMergeFieldWithText(rowMergeFields, "ActionRequired", infringement.ActionRequired);
-
-                            table.AppendChild(rowCopy);
+                        "Infringements",
+                        new List<Dictionary<string, string>> {
+                            new Dictionary<string, string>
+                            {
+                                { "InfringementText", "Some sort of infringement of the standards." },
+                                { "ActionRequired", "Do something about this thing." },
+                                { "Photo", "http://intcdn.telemetry.aws/Images/Drop/logos/190x75.gif" }
+                            },
+                            new Dictionary<string, string>
+                            {
+                                { "InfringementText", "Some other sort of infringement of the standards." },
+                                { "ActionRequired", "Do something else about this thing." }
+                            },
+                            new Dictionary<string, string>
+                            {
+                                { "InfringementText", "Some other other sort of infringement of the standards." },
+                                { "ActionRequired", "You seem to enjoy infringing." }
+                            }
                         }
-
-                        table.RemoveChild(rowTemplate);
+                    },
+                    {
+                        "Something",
+                        new List<Dictionary<string, string>> {
+                            new Dictionary<string, string>
+                            {
+                                { "Someprop", "a document property to be replaced." }
+                            },
+                            new Dictionary<string, string>
+                            {
+                                { "Someprop", "another document property to be replaced." }
+                            }
+                        }
                     }
-                }
+                };
+
+                var mergeData = new Dictionary<string, string> { { "Property", "The Property, 1 The Street" }, { "Ref", "AWPREF00001" } };
+
+                MergeForEach(GetForEachFields(mainPart.RootElement), forEachData);
+
+                RemoveForEachFields(mainPart.RootElement);
+
+                ReplaceMergeFields(mainPart.RootElement, mergeData);
 
                 // Save the document
                 mainPart.Document.Save();
-
             }
         }
 
-        private static void ReplaceMergeFieldWithText(IEnumerable<FieldCode> fields, string mergeFieldName, string replacementText)
+        private void MergeForEach(IEnumerable<FieldCode> repeated, Dictionary<string, List<Dictionary<string, string>>> forEachData)
         {
-            var field = fields
-                .FirstOrDefault(f => f.InnerText.Contains(mergeFieldName));
+            foreach (var repeat in repeated)
+            {
+                var name = GetFieldName(repeat);
 
-            if (field == null) return;
+                OpenXmlElement container = repeat.Parent as Table
+                    ?? repeat.Parent.Parent as Table
+                    ?? repeat.Parent.Parent.Parent as Table
+                    ?? repeat.Parent.Parent.Parent.Parent as Table
+                    ?? repeat.Parent.Parent.Parent.Parent.Parent as Table
+                    ?? repeat.Parent.Parent.Parent.Parent.Parent.Parent as Table;
+
+                OpenXmlElement template = repeat.Parent as TableRow
+                    ?? repeat.Parent.Parent as TableRow
+                    ?? repeat.Parent.Parent.Parent as TableRow
+                    ?? repeat.Parent.Parent.Parent.Parent as TableRow
+                    ?? repeat.Parent.Parent.Parent.Parent.Parent as TableRow;
+
+                if (container == null || template == null)
+                {
+                    container = repeat.Parent.Parent.Parent;
+                    template = repeat.Parent.Parent;
+                }
+
+                foreach (var datum in forEachData[name])
+                {
+                    ProcessTemplateAndAppendToContainer(container, template, datum);
+                }
+
+                container.RemoveChild(template);
+            }
+        }
+
+        private string GetFieldName(FieldCode field)
+        {
+            // should be one of these forms:
+            // MERGEFIELD COMMAND:name
+            // MERGEFIELD \"COMMAND:name\"
+            // MERGEFIELD  COMMAND:name
+            // MERGEFIELD name
+            // MERGEFIELD \"name\"
+            // MERGEFIELD  name
+
+            var fieldText = field.InnerText.Replace("MERGEFIELD", "").Replace(" ", "");
+            return fieldText.Contains(":") ? fieldText.Split(':')[1] : fieldText;
+        }
+
+        private void ProcessTemplateAndAppendToContainer(OpenXmlElement container, OpenXmlElement template, Dictionary<string, string> data)
+        {
+            var templateClone = template.CloneNode(true);
+
+            ReplaceMergeFields(templateClone, data);
+
+            container.AppendChild(templateClone);
+        }
+
+        private IEnumerable<FieldCode> GetMergeFields(OpenXmlElement element)
+        {
+            return element.Descendants<FieldCode>().Where(code => code.InnerText.Contains("MERGEFIELD") && !code.InnerText.Contains("FOREACH:"));
+        }
+
+        private IEnumerable<FieldCode> GetForEachFields(OpenXmlElement element)
+        {
+            return element.Descendants<FieldCode>().Where(code => code.InnerText.Contains("MERGEFIELD") && code.InnerText.Contains("FOREACH:"));
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <example> Merge Field XML
+        ////<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        ////    <w:rPr>
+        ////        <w:rFonts w:ascii="Verdana" w:hAnsi="Verdana" />
+        ////        <w:sz w:val="20" />
+        ////        <w:szCs w:val="20" />
+        ////    </w:rPr>
+        ////    <w:fldChar w:fldCharType="begin" />
+        ////</w:r>
+        ////<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        ////    <w:rPr>
+        ////        <w:rFonts w:ascii="Verdana" w:hAnsi="Verdana" />
+        ////        <w:sz w:val="20" />
+        ////        <w:szCs w:val="20" />
+        ////    </w:rPr>
+        ////    <w:instrText xml:space="preserve"> MERGEFIELD FOREACH:Infringements</w:instrText>
+        ////</w:r>
+        ////<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        ////    <w:rPr>
+        ////        <w:rFonts w:ascii="Verdana" w:hAnsi="Verdana" />
+        ////        <w:sz w:val="20" />
+        ////        <w:szCs w:val="20" />
+        ////    </w:rPr>
+        ////    <w:fldChar w:fldCharType="separate" />
+        ////</w:r>
+        ////<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        ////    <w:rPr>
+        ////        <w:rFonts w:ascii="Verdana" w:hAnsi="Verdana" />
+        ////        <w:noProof />
+        ////        <w:sz w:val="20" />
+        ////        <w:szCs w:val="20" />
+        ////    </w:rPr>
+        ////    <w:t>«FOREACH:Infringements»</w:t>
+        ////</w:r>
+        ////<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        ////    <w:rPr>
+        ////        <w:rFonts w:ascii="Verdana" w:hAnsi="Verdana" />
+        ////        <w:sz w:val="20" />
+        ////        <w:szCs w:val="20" />
+        ////    </w:rPr>
+        ////    <w:fldChar w:fldCharType="end" />
+        ////</w:r>
+        /// </example>
+        /// <param name="element"></param>
+        /// <param name="data"></param>
+        private void ReplaceMergeFields(OpenXmlElement element, Dictionary<string, string> data)
+        {
+            var fields = GetMergeFields(element);
+
+            foreach (var field in fields.ToList())
+            {
+                var fieldname = GetFieldName(field);
+
+                if (data.ContainsKey(fieldname))
+                {
+                    ReplaceMergeField(field, data[fieldname]);
+                }
+                else
+                {
+                    RemoveMergeField(field);
+                }
+            }
+        }
+
+        private void RemoveForEachFields(OpenXmlElement element)
+        {
+            var fields = GetForEachFields(element);
+
+            foreach (var field in fields.ToList())
+            {
+                RemoveMergeField(field);
+            }
+        }
+
+        private void ReplaceMergeField(FieldCode mergeField, string replacementText)
+        {
             // Get the Run that contains our FieldCode
             // Then get the parent container of this Run
-            var rFldCode = (Run)field.Parent;
+            var fieldParent = (Run)mergeField.Parent;
 
             // Get the three (3) other Runs that make up our merge field
-            var rBegin = rFldCode.PreviousSibling<Run>();
-            var rSep = rFldCode.NextSibling<Run>();
-            var rText = rSep.NextSibling<Run>();
-            var rEnd = rText.NextSibling<Run>();
+            var begin = fieldParent.PreviousSibling<Run>();
+            var separator = fieldParent.NextSibling<Run>();
+            var text = separator.NextSibling<Run>();
+            var end = text.NextSibling<Run>();
 
             // Get the Run that holds the Text element for our merge field
             // Get the Text element and replace the text content 
-            var t = rText.GetFirstChild<Text>();
+            var t = text.GetFirstChild<Text>();
             t.Text = replacementText;
 
             // Remove all the four (4) Runs for our merge field
-            rFldCode.Remove();
-            rBegin.Remove();
-            rSep.Remove();
-            rEnd.Remove();
+            fieldParent.Remove();
+            begin.Remove();
+            separator.Remove();
+            end.Remove();
         }
-    }
 
-    public class Infringement
-    {
-        public string InfringementText { get; set; }
-        public string ActionRequired { get; set; }
+        private void RemoveMergeField(FieldCode mergeField)
+        {
+            // Get the Run that contains our FieldCode
+            var fieldParent = (Run)mergeField.Parent;
+
+            // Get the other Runs that make up our merge field
+            var begin = fieldParent.PreviousSibling<Run>();
+            var separator = fieldParent.NextSibling<Run>();
+            var text = separator.NextSibling<Run>();
+            var end = text.NextSibling<Run>();
+
+            // Remove all Runs for our merge field
+            begin.Remove();
+            fieldParent.Remove();
+            separator.Remove();
+            text.Remove();
+            end.Remove();
+        }
     }
 }

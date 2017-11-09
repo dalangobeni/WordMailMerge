@@ -1,6 +1,0 @@
-E:\Projects\tests\WordMailMerge\MockDataLayer\bin\Debug\MockDataLayer.dll
-E:\Projects\tests\WordMailMerge\MockDataLayer\bin\Debug\MockDataLayer.pdb
-E:\Projects\tests\WordMailMerge\MockDataLayer\obj\Debug\MockDataLayer.csprojResolveAssemblyReference.cache
-E:\Projects\tests\WordMailMerge\MockDataLayer\obj\Debug\MockDataLayer.csproj.CoreCompileInputs.cache
-E:\Projects\tests\WordMailMerge\MockDataLayer\obj\Debug\MockDataLayer.dll
-E:\Projects\tests\WordMailMerge\MockDataLayer\obj\Debug\MockDataLayer.pdb
