@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace WordMailMerge
 {
@@ -38,7 +36,7 @@ namespace WordMailMerge
                             {
                                 { "InfringementText", "Some sort of infringement of the standards." },
                                 { "ActionRequired", "Do something about this thing." },
-                                { "Photo", "http://intcdn.telemetry.aws/Images/Drop/logos/190x75.gif" }
+                                { "Photo", "E:\\Projects\\tests\\WordMailMerge\\test.jpg" }
                             },
                             new Dictionary<string, string>
                             {
@@ -69,35 +67,35 @@ namespace WordMailMerge
 
                 var mergeData = new Dictionary<string, string> { { "Property", "The Property, 1 The Street" }, { "Ref", "AWPREF00001" } };
 
-                MergeForEach(GetForEachFields(mainPart.RootElement), forEachData);
+                MergeForEach(document, GetForEachFields(mainPart.RootElement), forEachData);
 
                 RemoveForEachFields(mainPart.RootElement);
 
-                ReplaceMergeFields(mainPart.RootElement, mergeData);
+                ReplaceMergeFields(document, mainPart.RootElement, mergeData);
 
                 // Save the document
                 mainPart.Document.Save();
             }
         }
 
-        private void MergeForEach(IEnumerable<FieldCode> repeated, Dictionary<string, List<Dictionary<string, string>>> forEachData)
+        private void MergeForEach(WordprocessingDocument wordprocessingDocument, IEnumerable<FieldCode> repeated, Dictionary<string, List<Dictionary<string, string>>> forEachData)
         {
             foreach (var repeat in repeated)
             {
                 var name = GetFieldName(repeat);
 
                 OpenXmlElement container = repeat.Parent as Table
-                    ?? repeat.Parent.Parent as Table
-                    ?? repeat.Parent.Parent.Parent as Table
-                    ?? repeat.Parent.Parent.Parent.Parent as Table
-                    ?? repeat.Parent.Parent.Parent.Parent.Parent as Table
-                    ?? repeat.Parent.Parent.Parent.Parent.Parent.Parent as Table;
+                    ?? repeat?.Parent?.Parent as Table
+                    ?? repeat?.Parent?.Parent?.Parent as Table
+                    ?? repeat?.Parent?.Parent?.Parent?.Parent as Table
+                    ?? repeat?.Parent?.Parent?.Parent?.Parent?.Parent as Table
+                    ?? repeat?.Parent?.Parent?.Parent?.Parent?.Parent?.Parent as Table;
 
                 OpenXmlElement template = repeat.Parent as TableRow
-                    ?? repeat.Parent.Parent as TableRow
-                    ?? repeat.Parent.Parent.Parent as TableRow
-                    ?? repeat.Parent.Parent.Parent.Parent as TableRow
-                    ?? repeat.Parent.Parent.Parent.Parent.Parent as TableRow;
+                    ?? repeat?.Parent?.Parent as TableRow
+                    ?? repeat?.Parent?.Parent?.Parent as TableRow
+                    ?? repeat?.Parent?.Parent?.Parent?.Parent as TableRow
+                    ?? repeat?.Parent?.Parent?.Parent?.Parent?.Parent as TableRow;
 
                 if (container == null || template == null)
                 {
@@ -107,7 +105,7 @@ namespace WordMailMerge
 
                 foreach (var datum in forEachData[name])
                 {
-                    ProcessTemplateAndAppendToContainer(container, template, datum);
+                    ProcessTemplateAndAppendToContainer(wordprocessingDocument, container, template, datum);
                 }
 
                 container.RemoveChild(template);
@@ -128,11 +126,11 @@ namespace WordMailMerge
             return fieldText.Contains(":") ? fieldText.Split(':')[1] : fieldText;
         }
 
-        private void ProcessTemplateAndAppendToContainer(OpenXmlElement container, OpenXmlElement template, Dictionary<string, string> data)
+        private void ProcessTemplateAndAppendToContainer(WordprocessingDocument wordprocessingDocument, OpenXmlElement container, OpenXmlElement template, Dictionary<string, string> data)
         {
             var templateClone = template.CloneNode(true);
 
-            ReplaceMergeFields(templateClone, data);
+            ReplaceMergeFields(wordprocessingDocument, templateClone, data);
 
             container.AppendChild(templateClone);
         }
@@ -194,7 +192,7 @@ namespace WordMailMerge
         /// </example>
         /// <param name="element"></param>
         /// <param name="data"></param>
-        private void ReplaceMergeFields(OpenXmlElement element, Dictionary<string, string> data)
+        private void ReplaceMergeFields(WordprocessingDocument wordprocessingDocument, OpenXmlElement element, Dictionary<string, string> data)
         {
             var fields = GetMergeFields(element);
 
@@ -204,7 +202,14 @@ namespace WordMailMerge
 
                 if (data.ContainsKey(fieldname))
                 {
-                    ReplaceMergeField(field, data[fieldname]);
+                    if (field.InnerText.Contains("IMAGE:"))
+                    {
+                        ReplaceMergeFieldImage(wordprocessingDocument, field, data[fieldname]);
+                    }
+                    else
+                    {
+                        ReplaceMergeField(field, data[fieldname]);
+                    }
                 }
                 else
                 {
@@ -247,6 +252,22 @@ namespace WordMailMerge
             end.Remove();
         }
 
+        private void ReplaceMergeFieldImage(WordprocessingDocument wordprocessingDocument, FieldCode mergeField, string imageUri)
+        {
+            var fieldParent = mergeField.Parent.Parent;
+
+            ImagePart imagePart = wordprocessingDocument.MainDocumentPart.AddImagePart(ImagePartType.Jpeg);
+
+            using (FileStream stream = new FileStream(imageUri, FileMode.Open))
+            {
+                imagePart.FeedData(stream);
+            }
+
+            RemoveMergeField(mergeField);
+            
+            fieldParent.AppendChild(CreateImageElement(wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart)));
+        }
+
         private void RemoveMergeField(FieldCode mergeField)
         {
             // Get the Run that contains our FieldCode
@@ -264,6 +285,75 @@ namespace WordMailMerge
             separator.Remove();
             text.Remove();
             end.Remove();
+        }
+        private static OpenXmlElement CreateImageElement(string relationshipId)
+        {
+            // Define the reference of the image.
+            var element =
+                new Drawing(
+                    new DW.Inline(
+                        new DW.Extent() { Cx = 990000L, Cy = 792000L },
+                        new DW.EffectExtent()
+                        {
+                            LeftEdge = 0L,
+                            TopEdge = 0L,
+                            RightEdge = 0L,
+                            BottomEdge = 0L
+                        },
+                        new DW.DocProperties()
+                        {
+                            Id = (UInt32Value)1U,
+                            Name = "Picture 1"
+                        },
+                        new DW.NonVisualGraphicFrameDrawingProperties(
+                            new A.GraphicFrameLocks() { NoChangeAspect = true }),
+                        new A.Graphic(
+                            new A.GraphicData(
+                                    new PIC.Picture(
+                                        new PIC.NonVisualPictureProperties(
+                                            new PIC.NonVisualDrawingProperties()
+                                            {
+                                                Id = (UInt32Value)0U,
+                                                Name = "New Bitmap Image.jpg"
+                                            },
+                                            new PIC.NonVisualPictureDrawingProperties()),
+                                        new PIC.BlipFill(
+                                            new A.Blip(
+                                                new A.BlipExtensionList(
+                                                    new A.BlipExtension()
+                                                    {
+                                                        Uri =
+                                                            "{28A0092B-C50C-407E-A947-70E740481C1C}"
+                                                    })
+                                            )
+                                            {
+                                                Embed = relationshipId,
+                                                CompressionState =
+                                                    A.BlipCompressionValues.Print
+                                            },
+                                            new A.Stretch(
+                                                new A.FillRectangle())),
+                                        new PIC.ShapeProperties(
+                                            new A.Transform2D(
+                                                new A.Offset() { X = 0L, Y = 0L },
+                                                new A.Extents() { Cx = 990000L, Cy = 792000L }),
+                                            new A.PresetGeometry(
+                                                    new A.AdjustValueList()
+                                                )
+                                                { Preset = A.ShapeTypeValues.Rectangle }))
+                                )
+                                { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+                    )
+                    {
+                        DistanceFromTop = (UInt32Value)0U,
+                        DistanceFromBottom = (UInt32Value)0U,
+                        DistanceFromLeft = (UInt32Value)0U,
+                        DistanceFromRight = (UInt32Value)0U,
+                        EditId = "50D07946"
+                    });
+
+            // Append the reference to body, the element should be in a Run.
+            return element; //wordDoc.MainDocumentPart.Document.Body.AppendChild(new Paragraph(new Run(element)));
         }
     }
 }
