@@ -3,10 +3,15 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
 using A = DocumentFormat.OpenXml.Drawing;
+using Drawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using Table = DocumentFormat.OpenXml.Wordprocessing.Table;
+using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 
 namespace WordMailMerge
 {
@@ -34,14 +39,16 @@ namespace WordMailMerge
                         new List<Dictionary<string, string>> {
                             new Dictionary<string, string>
                             {
-                                { "InfringementText", "Some sort of infringement of the standards." },
+                                { "InfringementText", "Some sort of infringement E:\\Projects\\tests\\WordMailMerge\\test.jpg of the standards." },
                                 { "ActionRequired", "Do something about this thing." },
                                 { "Photo", "E:\\Projects\\tests\\WordMailMerge\\test.jpg" }
                             },
                             new Dictionary<string, string>
                             {
                                 { "InfringementText", "Some other sort of infringement of the standards." },
-                                { "ActionRequired", "Do something else about this thing." }
+                                { "ActionRequired", "Do something else about this thing." },
+                                { "Photo", "E:\\Projects\\tests\\WordMailMerge\\test2.jpg" }
+                                //{ "Photo", "http://intcdn.telemetry.aws/Images/Drop/header.png" }
                             },
                             new Dictionary<string, string>
                             {
@@ -67,6 +74,8 @@ namespace WordMailMerge
 
                 var mergeData = new Dictionary<string, string> { { "Property", "The Property, 1 The Street" }, { "Ref", "AWPREF00001" } };
 
+                ReplaceFont(document, "Consolas", "Bauhaus 93");
+
                 MergeForEach(document, GetForEachFields(mainPart.RootElement), forEachData);
 
                 RemoveForEachFields(mainPart.RootElement);
@@ -75,6 +84,17 @@ namespace WordMailMerge
 
                 // Save the document
                 mainPart.Document.Save();
+            }
+        }
+
+        private void ReplaceFont(WordprocessingDocument document, string fontFrom, string fontTo)
+        {
+            var fonts = document.MainDocumentPart.RootElement.Descendants<RunFonts>().Where(runFonts => runFonts.Ascii == fontFrom);
+            foreach (var font in fonts)
+            {
+                font.Ascii = fontTo;
+                font.HighAnsi = fontTo;
+                font.ComplexScript = fontTo;
             }
         }
 
@@ -264,8 +284,9 @@ namespace WordMailMerge
             }
 
             RemoveMergeField(mergeField);
-            
-            fieldParent.AppendChild(CreateImageElement(wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart)));
+
+            fieldParent.AppendChild(new Paragraph());
+            fieldParent.AppendChild(new Paragraph(new Run(CreateImageElement(wordprocessingDocument.MainDocumentPart.GetIdOfPart(imagePart)))));
         }
 
         private void RemoveMergeField(FieldCode mergeField)
@@ -286,6 +307,7 @@ namespace WordMailMerge
             text.Remove();
             end.Remove();
         }
+
         private static OpenXmlElement CreateImageElement(string relationshipId)
         {
             // Define the reference of the image.
